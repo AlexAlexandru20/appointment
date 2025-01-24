@@ -22,7 +22,7 @@ def sendConfirmMailAsync(email, app):
             print("Inside Flask context")
 
             token = serializer.dumps(email, salt='email-confirm')
-            confirm_url = f"http://{app.config['SERVER_NAME']}/confirm-email/{token}"
+            confirm_url = f"https://{app.config['SERVER_NAME']}/confirm-email/{token}"
 
             print(f'Generated confirmation URL: {confirm_url}')
 
