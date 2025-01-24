@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}
+    SignUp BotiSHOP
+{% endblock %}
+{% block body %}
+    <form method="post" action="{{ url_for('auth.register') }}">
+        <input type="email" name="email" id="email" placeholder="Email" required>
+        <input type="password" name="password" id="password" placeholder="Password" required>
+        <input type="password" name="password2" id="password2" placeholder="Confirm Password" required>
+        <button type="submit">Register</button>
+    </form>
+    <p>Ai deja cont? <a href="{{ url_for('auth.login') }}">Conecteaza-te</a></p>
+{% endblock %}

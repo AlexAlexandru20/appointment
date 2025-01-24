@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}
+    Home BotiSHOP
+{% endblock %}
+{% block body %}
+    <a href="{{url_for('auth.logout')}}">Delogare</a>
+    <h1>Programari</h1>
+    <input type="date" name="dateSelect" id="dateSelect" min="" max="">
+    <div id="hours"></div>
+    <div id="appointment_details"></div>
+
+    <script>
+        $(document).ready(function(){
+            const dateSelect = document.getElementById("dateSelect");
+            $(dateSelect).on('change', function(){
+                let appointmentDetails = document.getElementById("appointment_details");
+                appointmentDetails.innerHTML = "";
+                selectedDate = $(this).val();
+                $.ajax({
+                    url: `{{url_for('views.appointments')}}`,
+                    method: 'POST',
+                    data: JSON.stringify({date: selectedDate}),
+                    contentType: 'application/json',
+                    success: function(data){
+                        let hoursDiv = document.getElementById("hours");
+                        hoursDiv.innerHTML = "";
+            
+                        if (data.available_hours.length === 0) {
+                            hoursDiv.innerHTML = "<p>No slots available.</p>";
+                            return;
+                        }
+            
+                        data.available_hours.forEach(hour => {
+                            let button = document.createElement("button");
+                            button.innerText = hour;
+                            button.onclick = () => selectedHour(button);
+                            button.dataset.hour = hour;
+                            button.dataset.date = selectedDate;
+                            hoursDiv.appendChild(button);
+                        });
+                    },
+                    error: function(error){
+                        console.log(error);
+                    }
+                });
+            });
+        });
+        function selectedHour(button){
+            let appointmentDetails, selectedDate, nameInput, emailInput, submitBtn;
+
+            appointmentDetails = document.getElementById("appointment_details");
+            appointmentDetails.innerHTML = "";
+
+            selectedDate = document.createElement("p");
+            selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
+
+            nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.placeholder = `{{user.name}}`;
+            nameInput.disabled = true;
+
+            emailInput = document.createElement("input");
+            emailInput.type = "email";
+            emailInput.placeholder = `{{user.email}}`;
+            emailInput.disabled = true;
+
+            submitBtn = document.createElement("button");
+            submitBtn.innerText = "Fa programarea";
+            submitBtn.onclick = () => submitAppointment(button.dataset.date, button.dataset.hour);
+
+            appointmentDetails.appendChild(selectedDate);
+            appointmentDetails.appendChild(nameInput);
+            appointmentDetails.appendChild(emailInput);
+            appointmentDetails.appendChild(submitBtn);
+
+
+        }
+        function submitAppointment(date, hour){
+            $.ajax({
+                url: `{{url_for('views.submitAppointment')}}`,
+                method: 'POST',
+                data: JSON.stringify({date: date, hour: hour}),
+                contentType: 'application/json',
+                success: function(data){
+                    if (data.existed){
+                        alert("Programarea exista deja.");
+                    }
+                    window.location.href = data.redirect;
+                },
+                error: function(error){
+                    console.log(error);
+                }
+            });
+        }
+    </script>
+{% endblock %}

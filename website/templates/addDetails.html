@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}
+    Adauga detalii client
+{% endblock %}
+{% block body %}
+    <h1>Adauga detalii client</h1>
+    <form action="{{url_for('views.addDetails')}}" method="POST">
+        <label for="name">Nume</label>
+        <input type="text" name="name" id="name" placeholder="Nume" required>
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" placeholder="{{user.email}}" disabled>
+        <label for="phone">Telefon</label>
+        <input type="tel" name="phone" id="phone" placeholder="phone" required>
+        <button type="submit">Trimite</button>
+    </form>
+{% endblock %}
