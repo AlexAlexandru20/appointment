@@ -1,96 +1,137 @@
-{% extends 'base.html' %}
-{% block title %}
-    Home BotiSHOP
-{% endblock %}
-{% block body %}
-    <a href="{{url_for('auth.logout')}}">Delogare</a>
+{% extends 'base.html' %} {% block title %} Home BotiSHOP {% endblock %} {%
+block body %}
+<div class="content">
+  <div class="left">
     <h1>Programari</h1>
-    <input type="date" name="dateSelect" id="dateSelect" min="" max="">
+    <input type="date" name="dateSelect" id="dateSelect" min="" max="" />
     <div id="hours"></div>
     <div id="appointment_details"></div>
+  </div>
+  <div class="right">
+    <a href="{{url_for('auth.logout')}}">Delogare</a>
+    <div class="appointments">
+      <h2>Programarile mele</h2>
+      <ul>
+        {% for appoint, appoint_data in appointments.items() %}
+        <li>
+          {{appoint_data.date}} - {{appoint_data.hour}} {% if not
+          appoint_data.cancelled%}
+          <button onclick="deleteAppoint(`{{appoint}}`)">Anuleaza</button>
+          {% else%}
+          <p>Cancelled</p>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
 
-    <script>
-        $(document).ready(function(){
-            const dateSelect = document.getElementById("dateSelect");
-            $(dateSelect).on('change', function(){
-                let appointmentDetails = document.getElementById("appointment_details");
-                appointmentDetails.innerHTML = "";
-                selectedDate = $(this).val();
-                $.ajax({
-                    url: `{{url_for('views.appointments')}}`,
-                    method: 'POST',
-                    data: JSON.stringify({date: selectedDate}),
-                    contentType: 'application/json',
-                    success: function(data){
-                        let hoursDiv = document.getElementById("hours");
-                        hoursDiv.innerHTML = "";
-            
-                        if (data.available_hours.length === 0) {
-                            hoursDiv.innerHTML = "<p>No slots available.</p>";
-                            return;
-                        }
-            
-                        data.available_hours.forEach(hour => {
-                            let button = document.createElement("button");
-                            button.innerText = hour;
-                            button.onclick = () => selectedHour(button);
-                            button.dataset.hour = hour;
-                            button.dataset.date = selectedDate;
-                            hoursDiv.appendChild(button);
-                        });
-                    },
-                    error: function(error){
-                        console.log(error);
-                    }
-                });
-            });
-        });
-        function selectedHour(button){
-            let appointmentDetails, selectedDate, nameInput, emailInput, submitBtn;
+<script>
+  $(document).ready(function () {
+    const dateSelect = document.getElementById("dateSelect");
+    $(dateSelect).on("change", function () {
+      let appointmentDetails = document.getElementById("appointment_details");
+      appointmentDetails.innerHTML = "";
+      selectedDate = $(this).val();
+      $.ajax({
+        url: `{{url_for('views.appointments')}}`,
+        method: "POST",
+        data: JSON.stringify({ date: selectedDate }),
+        contentType: "application/json",
+        success: function (data) {
+          console.log(data);
+          let hoursDiv = document.getElementById("hours");
+          hoursDiv.innerHTML = "";
 
-            appointmentDetails = document.getElementById("appointment_details");
-            appointmentDetails.innerHTML = "";
+          const fragment = document.createDocumentFragment();
+          // Sort by time
+          const sortedSlots = Object.entries(data.slots).sort(([a], [b]) => {
+            // Convert "9:00", "10:00" into numbers for correct sorting
+            return parseInt(a) - parseInt(b);
+          });
 
-            selectedDate = document.createElement("p");
-            selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
+          sortedSlots.map(([hour, booked]) => {
+            let button = document.createElement("button");
+            button.innerText = hour;
+            button.onclick = () => selectedHour(button);
+            button.dataset.hour = hour;
+            button.dataset.date = selectedDate;
 
-            nameInput = document.createElement("input");
-            nameInput.type = "text";
-            nameInput.placeholder = `{{user.name}}`;
-            nameInput.disabled = true;
+            if (booked) {
+              button.disabled = true;
+            }
 
-            emailInput = document.createElement("input");
-            emailInput.type = "email";
-            emailInput.placeholder = `{{user.email}}`;
-            emailInput.disabled = true;
+            fragment.appendChild(button);
+          });
 
-            submitBtn = document.createElement("button");
-            submitBtn.innerText = "Fa programarea";
-            submitBtn.onclick = () => submitAppointment(button.dataset.date, button.dataset.hour);
+          hoursDiv.appendChild(fragment);
+        },
+        error: function (error) {
+          console.log(error);
+        },
+      });
+    });
+  });
+  function selectedHour(button) {
+    let appointmentDetails, selectedDate, nameInput, emailInput, submitBtn;
 
-            appointmentDetails.appendChild(selectedDate);
-            appointmentDetails.appendChild(nameInput);
-            appointmentDetails.appendChild(emailInput);
-            appointmentDetails.appendChild(submitBtn);
+    appointmentDetails = document.getElementById("appointment_details");
+    appointmentDetails.innerHTML = "";
 
+    selectedDate = document.createElement("p");
+    selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
 
+    nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = `{{user.name}}`;
+    nameInput.disabled = true;
+
+    emailInput = document.createElement("input");
+    emailInput.type = "email";
+    emailInput.placeholder = `{{user.email}}`;
+    emailInput.disabled = true;
+
+    submitBtn = document.createElement("button");
+    submitBtn.innerText = "Fa programarea";
+    submitBtn.onclick = () =>
+      submitAppointment(button.dataset.date, button.dataset.hour);
+
+    appointmentDetails.appendChild(selectedDate);
+    appointmentDetails.appendChild(nameInput);
+    appointmentDetails.appendChild(emailInput);
+    appointmentDetails.appendChild(submitBtn);
+  }
+  function submitAppointment(date, hour) {
+    $.ajax({
+      url: `{{url_for('views.submitAppointment')}}`,
+      method: "POST",
+      data: JSON.stringify({ date: date, hour: hour }),
+      contentType: "application/json",
+      success: function (data) {
+        if (data.existed) {
+          alert("Programarea exista deja.");
         }
-        function submitAppointment(date, hour){
-            $.ajax({
-                url: `{{url_for('views.submitAppointment')}}`,
-                method: 'POST',
-                data: JSON.stringify({date: date, hour: hour}),
-                contentType: 'application/json',
-                success: function(data){
-                    if (data.existed){
-                        alert("Programarea exista deja.");
-                    }
-                    window.location.href = data.redirect;
-                },
-                error: function(error){
-                    console.log(error);
-                }
-            });
-        }
-    </script>
+        window.location.href = data.redirect;
+      },
+      error: function (error) {
+        console.log(error);
+      },
+    });
+  }
+  function deleteAppoint(appoint) {
+    $.ajax({
+      url: `{{url_for('views.cancelAppointment')}}`,
+      method: "POST",
+      data: JSON.stringify({ id: appoint }),
+      contentType: "application/json",
+      success: function (data) {
+        window.location.reload();
+      },
+      error: function (error) {
+        console.log(error);
+      },
+    });
+  }
+</script>
 {% endblock %}
