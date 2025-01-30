@@ -31,5 +31,4 @@ class Appointments(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now())
     user = db.relationship('User', backref='appointments')
 
-    __table_args__ = (db.UniqueConstraint('date', 'hour', name='unique_appointment_slot'),)
     
