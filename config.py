@@ -8,7 +8,7 @@ class Config:
     PREFERRED_URL_SCHEME = 'https'   # or 'https' for production
 
     # PostgreSQL Database Configuration
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "postgresql://postgre:zbZrGbulcnJXapG7eIpLXbG13FR83W2z@dpg-cu9n1llds78s739g1dj0-a/appointments_db_hqko")  # Use Render’s DB URL
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "postgresql://appointments_xg3w_user:bVdhncdikeJWUiANDiZfWVQjSjH1bZc5@dpg-cur3mv2j1k6c73cvr79g-a/appointments_xg3w")  # Use Render’s DB URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 20,           # Number of persistent connections
