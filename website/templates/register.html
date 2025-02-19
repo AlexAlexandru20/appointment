@@ -3,8 +3,13 @@
     SignUp BotiSHOP
 {% endblock %}
 {% block body %}
-    <form method="post" action="{{ url_for('auth.register') }}">
+    <form method="post" action="{{ url_for('auth.register', email='newUser') }}">
+        {% if email %}
+        <input type="email" name="email" id="email" value="{{email}}" required>
+        {% else %}
         <input type="email" name="email" id="email" placeholder="Email" required>
+        {% endif %}
+        
         <input type="password" name="password" id="password" placeholder="Password" required>
         <input type="password" name="password2" id="password2" placeholder="Confirm Password" required>
         <button type="submit">Register</button>

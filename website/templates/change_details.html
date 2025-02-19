@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}
+    Modificare user BotiSHOP
+{% endblock %}
+{% block body %}
+    <form>
+        <input type="text" name="name" id="name" value="{{user.name}}">
+        <div class="email-area">
+            <input type="email" name="email" id="email" placeholder="{{user.email}}" disabled> 
+            <button type="button" id="modifyEmailBtn">Modifica email</button>
+        </div>
+        <div class="pass-area">
+            <input type="password" name="password" id="password" placeholder="**********" disabled>
+            <a href="{{url_for('auth.resetPass')}}">Modifica parola</a>
+        </div>
+        <input type="tel" name="phone" id="phone" value="{{user.phone}}">
+        <button type="submit" id="modifyForm">Modifica</button>
+    </form>
+    <a href="{{url_for('auth.logout')}}">Delogare</a>
+    <button id="deleteAccount">Sterge cont</button>
+    <a href="{{url_for('views.home')}}">Inapoi</a>
+
+    
+
+    <script>
+        $(document).ready(() => {
+
+            $("#modifyForm").on('click', (event) => {
+                event.preventDefault();
+
+                const new_name = $("#name").val() ? $("#name").val() : "{{user.name}}";
+                const new_phone = $("#phone").val() ? $("#phone").val() : "{{user.phone}}";
+
+                $.ajax({
+                    url: `{{url_for('users.change')}}`,
+                    type: "POST",
+                    data: JSON.stringify({
+                        name: new_name,
+                        phone: new_phone
+                    }),
+                    contentType: "application/json",
+                    success: (response) => {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: "success",
+                                title: "Datele au fost modificate cu succes!",
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    },
+                    error: (error) => {
+                        console.error(error);
+                    },
+                })
+            })
+
+            document.getElementById("modifyEmailBtn").addEventListener("click", async () => {
+                const { value: email } = await Swal.fire({
+                    title: "Introdu adresa noua de email",
+                    input: "email",
+                    inputLabel: "Email",
+                    inputPlaceholder: `{{user.email}}`
+                });
+    
+                if (email) {
+                    $.ajax({
+                        url: `{{url_for('auth.changeEmail')}}`,
+                        type: "POST",
+                        data: JSON.stringify({
+                            email: email
+                        }),
+                        contentType: "application/json",
+                        success: (response) => {
+                            if (response.success){
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Mesaj de confirmare trimis!",
+                                    text: "Verifica-ti email-ul pentru a confirma schimbarea",
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    timerProgressBar: true
+                                }).then(() => {
+                                    window.location.href = `{{url_for('auth.confirmEmailWindow', email="__PLACEHOLDER__") }}`.replace("__PLACEHOLDER__", email);
+                                });
+                            }
+                        },
+                        error: (error) => {
+                            console.error(error);
+                        },
+                    });
+                }
+            });
+
+            $("#deleteAccount").on('click', async () => {
+    
+                await Swal.fire({
+                    title: 'Esti sigur?',
+                    text: "Contul tau va fi șters definitiv!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Da, sterge contul!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `{{url_for('users.delete')}}`,
+                            type: "POST",
+                            data: JSON.stringify({}),
+                            contentType: "application/json",
+                            dataType: "json",
+                            success: (response) => {
+                                if (response.success) {
+                                    Swal.fire({
+                                        icon: "success",
+                                        title: "Contul a fost sters cu succes!",
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                        timerProgressBar: true
+                                    }).then(() => {
+                                        window.location.href = `{{url_for('auth.login')}}`;
+                                    });
+                                }
+                            },
+                            error: (error) => {
+                                console.error(error);
+                            },
+                        });
+                    }
+                });
+            });
+        });
+        
+    </script>
+
+{% endblock %}

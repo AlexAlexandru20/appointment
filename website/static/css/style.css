@@ -1,0 +1,14 @@
+.content{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+}
+
+.old_appoint{
+    color: grey;
+}
+
+.disabled:not(#time){
+    color: grey;
+    cursor: not-allowed;
+}

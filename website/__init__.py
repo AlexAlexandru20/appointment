@@ -19,10 +19,12 @@ def createApp():
 
     from .auth import auth
     from .views import views
+    from .users import users
     from .models import User, Appointments
 
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(views, url_prefix='/logged/')
+    app.register_blueprint(users, url_prefix='/user/')
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'

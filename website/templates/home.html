@@ -1,96 +1,267 @@
-{% extends 'base.html' %}
-{% block title %}
-    Home BotiSHOP
-{% endblock %}
-{% block body %}
-    <a href="{{url_for('auth.logout')}}">Delogare</a>
+{% extends 'base.html' %} {% block title %} Home BotiSHOP {% endblock %} {%
+block body %}
+<div class="content">
+  <div class="left">
     <h1>Programari</h1>
-    <input type="date" name="dateSelect" id="dateSelect" min="" max="">
+    <input type="date" name="dateSelect" id="dateSelect" min="" max="" />
     <div id="hours"></div>
     <div id="appointment_details"></div>
+  </div>
+  <div class="right">
+    <a href="{{url_for('users.change')}}">Modificare user</a>
+    <a href="{{url_for('auth.logout')}}">Delogare</a>
+    <div class="appointments">
+      <h2>Programarile mele</h2>
+      <ul id="appoitmentsContainer">
+        {% if appointments %} {% for appoint, appoint_data in
+        appointments.items() %}
+        <li>
+          {{ appoint_data.date }} - {{ appoint_data.hour }}
+          <button onclick="deleteAppoint(`{{ appoint }}`)">Anuleaza</button>
+          <button onclick="moveAppoint(`{{ appoint }}`)">
+            Muta rezervarea
+          </button>
+        </li>
+        {% endfor %} {% endif %}
 
-    <script>
-        $(document).ready(function(){
-            const dateSelect = document.getElementById("dateSelect");
-            $(dateSelect).on('change', function(){
-                let appointmentDetails = document.getElementById("appointment_details");
-                appointmentDetails.innerHTML = "";
-                selectedDate = $(this).val();
-                $.ajax({
-                    url: `{{url_for('views.appointments')}}`,
-                    method: 'POST',
-                    data: JSON.stringify({date: selectedDate}),
-                    contentType: 'application/json',
-                    success: function(data){
-                        let hoursDiv = document.getElementById("hours");
-                        hoursDiv.innerHTML = "";
-            
-                        if (data.available_hours.length === 0) {
-                            hoursDiv.innerHTML = "<p>No slots available.</p>";
-                            return;
-                        }
-            
-                        data.available_hours.forEach(hour => {
-                            let button = document.createElement("button");
-                            button.innerText = hour;
-                            button.onclick = () => selectedHour(button);
-                            button.dataset.hour = hour;
-                            button.dataset.date = selectedDate;
-                            hoursDiv.appendChild(button);
-                        });
-                    },
-                    error: function(error){
-                        console.log(error);
-                    }
-                });
+        {% if cancelled %} {% for cancel, cancel_data in cancelled.items() %}
+        <li>
+          {{ cancel_data.date }} - {{ cancel_data.hour }}
+          <p>Canceled</p>
+          <button onclick="displayNone(this)">x</button>
+        </li>
+        {% endfor %} {% endif %} {% if not appointments and not cancelled %}
+        <li>Nu ai programari efectuate</li>
+        {% endif %}
+      </ul>
+      <div id="appointmentsContainer"></div>
+      <button id="oldAppoint">Vezi programari vechi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    const dateInput = document.querySelector("#dateSelect");
+
+    const today = new Date();
+
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 30);
+
+    if (maxDate.getDate() === 31) {
+      maxDate.setDate(31);
+    }
+
+    dateInput.setAttribute("min", today.toISOString().split("T")[0]);
+    dateInput.setAttribute("max", maxDate.toISOString().split("T")[0]);
+
+    const dateSelect = document.getElementById("dateSelect");
+    $(dateSelect).on("change", function () {
+      let appointmentDetails = document.getElementById("appointment_details");
+      appointmentDetails.innerHTML = "";
+      selectedDate = $(this).val();
+
+      const date = new Date(selectedDate).toLocaleDateString("ro-RO");
+
+      $.ajax({
+        url: `{{url_for('views.appointments')}}`,
+        method: "POST",
+        data: JSON.stringify({ date: selectedDate }),
+        contentType: "application/json",
+        success: function (data) {
+          console.log(data);
+          let hoursDiv = document.getElementById("hours");
+          hoursDiv.innerHTML = "";
+
+          const fragment = document.createDocumentFragment();
+          const sortedSlots = Object.entries(data.slots).sort(([a], [b]) => {
+            return parseInt(a) - parseInt(b);
+          });
+
+          sortedSlots.map(([hour, booked]) => {
+            let button = document.createElement("button");
+            button.innerText = hour;
+            button.onclick = () => selectedHour(button);
+            button.dataset.hour = hour;
+            button.dataset.date = date;
+
+            if (booked) {
+              button.disabled = true;
+            }
+
+            fragment.appendChild(button);
+          });
+          if (sortedSlots.length === 0) {
+            let noHours = document.createElement("p");
+            noHours.innerText = "Nu sunt ore disponibile pentru aceasta zi.";
+            fragment.appendChild(noHours);
+          }
+
+          hoursDiv.appendChild(fragment);
+        },
+        error: function (error) {
+          console.log(error);
+        },
+      });
+    });
+
+    let btnClicked = false;
+
+    $("#oldAppoint").on("click", (event) => {
+      btnClicked = !btnClicked;
+
+      event.target.innerHTML = btnClicked
+        ? "Vezi mai putine"
+        : "Vezi programari vechi";
+
+      let appointsContainer = $("#appointmentsContainer");
+
+      if (btnClicked) {
+        $.ajax({
+          url: `{{url_for('views.getOldAppoints')}}`,
+          method: "GET",
+          success: (data) => {
+            $("#appointmentsContainer").empty();
+    
+            if (Object.keys(data.appointments).length === 0 && Object.keys(data.cancelled).length === 0) {
+              appointsContainer.append(
+                $("<li>").text("Nu ai programari vechi")
+              );
+              return;
+            }
+    
+            Object.values(data.appointments).forEach((content) => {
+              appointsContainer.append(
+                $("<li>")
+                  .addClass("old_appoint")
+                  .text(`${content.date} - ${content.hour}`)
+              );
             });
+    
+            Object.values(data.cancelled).forEach((content) => {
+              appointsContainer.append(
+                $("<li>")
+                  .addClass("old_appoint cancelled")
+                  .text(`${content.date} - ${content.hour} (Anulată)`)
+              );
+            });
+          },
+          error: (error) => {
+            console.error(error);
+          },
         });
-        function selectedHour(button){
-            let appointmentDetails, selectedDate, nameInput, emailInput, submitBtn;
+      } else {
+        $("#appointmentsContainer").empty();
+      }
+    });
+  });
 
-            appointmentDetails = document.getElementById("appointment_details");
-            appointmentDetails.innerHTML = "";
+  let appoint_id = null;
 
-            selectedDate = document.createElement("p");
-            selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
+  function displayNone(button) {
+    button.closest("li").remove();
+  }
 
-            nameInput = document.createElement("input");
-            nameInput.type = "text";
-            nameInput.placeholder = `{{user.name}}`;
-            nameInput.disabled = true;
+  function moveAppoint(appoint) {
+    appoint_id = appoint;
+    document.getElementById("dateSelect").showPicker();
+  }
 
-            emailInput = document.createElement("input");
-            emailInput.type = "email";
-            emailInput.placeholder = `{{user.email}}`;
-            emailInput.disabled = true;
+  function selectedHour(button) {
+    let appointmentDetails = document.getElementById("appointment_details");
+    appointmentDetails.innerHTML = "";
 
-            submitBtn = document.createElement("button");
-            submitBtn.innerText = "Fa programarea";
-            submitBtn.onclick = () => submitAppointment(button.dataset.date, button.dataset.hour);
+    let selectedDate = document.createElement("p");
+    selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
 
-            appointmentDetails.appendChild(selectedDate);
-            appointmentDetails.appendChild(nameInput);
-            appointmentDetails.appendChild(emailInput);
-            appointmentDetails.appendChild(submitBtn);
+    let nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = `{{user.name}}`;
+    nameInput.disabled = true;
 
+    let emailInput = document.createElement("input");
+    emailInput.type = "email";
+    emailInput.placeholder = `{{user.email}}`;
+    emailInput.disabled = true;
 
+    let submitBtn = document.createElement("button");
+    submitBtn.innerText = "Fa programarea";
+    submitBtn.onclick = () =>
+      submitAppointment(button.dataset.date, button.dataset.hour);
+
+    appointmentDetails.appendChild(selectedDate);
+    appointmentDetails.appendChild(nameInput);
+    appointmentDetails.appendChild(emailInput);
+    appointmentDetails.appendChild(submitBtn);
+  }
+
+  function submitAppointment(date, hour) {
+    $.ajax({
+      url: `{{url_for('views.submitAppointment')}}`,
+      method: "POST",
+      data: JSON.stringify({ date: date, hour: hour, move_from: appoint_id }),
+      contentType: "application/json",
+      success: function (data) {
+        if (data.existed) {
+          Swal.fire({
+            titleText: "Upss!",
+            text: "Programarea exista deja",
+            icon: "error",
+          });
+        } else {
+          Swal.fire({
+            titleText: "Succes!",
+            text: "Programarea a fost realizată cu succes!",
+            icon: "success",
+          }).then(() => {
+            window.location.href = data.redirect;
+          });
         }
-        function submitAppointment(date, hour){
-            $.ajax({
-                url: `{{url_for('views.submitAppointment')}}`,
-                method: 'POST',
-                data: JSON.stringify({date: date, hour: hour}),
-                contentType: 'application/json',
-                success: function(data){
-                    if (data.existed){
-                        alert("Programarea exista deja.");
-                    }
-                    window.location.href = data.redirect;
-                },
-                error: function(error){
-                    console.log(error);
-                }
-            });
-        }
-    </script>
+        appoint_id = null;
+      },
+      error: function (error) {
+        console.log(error);
+        Swal.fire({
+          titleText: "Eroare!",
+          text: "A apărut o problemă, încearcă din nou.",
+          icon: "error",
+        });
+      },
+    });
+  }
+
+  function deleteAppoint(appoint) {
+    Swal.fire({
+      titleText: "Esti sigur?",
+      text: "Daca anulezi programarea nu o vei mai putea recupera!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Da, anulează",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `{{url_for('views.cancelAppointment')}}`,
+          method: "POST",
+          data: JSON.stringify({ id: appoint }),
+          contentType: "application/json",
+          success: function (data) {
+            if (data.elapsed) {
+              Swal.fire({
+                titleText: "Upss!",
+                text: "Programarea nu mai poate fi anulata. A trecut de termenenul minim de 3 ore.",
+                icon: "error",
+              });
+            } else {
+              window.location.reload();
+            }
+          },
+          error: function (error) {
+            console.log(error);
+          },
+        });
+      }
+    });
+  }
+</script>
 {% endblock %}
