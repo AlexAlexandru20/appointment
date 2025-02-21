@@ -24,7 +24,7 @@ serializer = URLSafeTimedSerializer("123456789")
 def getMailInfo(email):
     token = serializer.dumps(email, salt="email-confirm")
     confirm_url = (
-        f"http://{current_app.config['SERVER_NAME']}/confirm-email/{token}"
+        f"https://{current_app.config['SERVER_NAME']}/confirm-email/{token}"
     )
 
     sbj = "📧 Confirmare adresă de email - Verifică și răsfață-te!"
