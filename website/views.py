@@ -6,6 +6,21 @@ from .utils import sendConfirmMail
 
 views = Blueprint("views", __name__)
 
+MONTHS_RO = {
+    "January": "Ianuarie",
+    "February": "Februarie",
+    "March": "Martie",
+    "April": "Aprilie",
+    "May": "Mai",
+    "June": "Iunie",
+    "July": "Iulie",
+    "August": "August",
+    "September": "Septembrie",
+    "October": "Octombrie",
+    "November": "Noiembrie",
+    "December": "Decembrie"
+}
+
 def getAvailableHours(selected_date):
     from .models import Appointments
 
@@ -33,64 +48,45 @@ def getAvailableHours(selected_date):
 
 def getAppointments(old=False):
     from .models import Appointments
+    appointments = []
+    cancelled = []
+    now = datetime.now().date()
 
-    appointments = {}
-    cancelled = {}
-
-    now = datetime.now()
-
-    if old:
-        existed_appoint = Appointments.query.filter(
-            Appointments.user_id == current_user.id,
-            (Appointments.date < now.date())
-        ).all()
-    else:
-        existed_appoint = Appointments.query.filter(
-            Appointments.user_id == current_user.id,
-            (Appointments.date > now.date()) | (Appointments.date == now.date()),
-        ).all()
+    # Fetch appointments from database
+    filter_condition = (Appointments.date < now) if old else (Appointments.date >= now)
+    existed_appoint = Appointments.query.filter(Appointments.user_id == current_user.id, filter_condition).all()
 
     for appoint in existed_appoint:
-        index = appoint.id
+        date_obj = appoint.date
+        month_ro = MONTHS_RO[date_obj.strftime("%B")]  # Get Romanian month
+        formatted_date = f"{date_obj.strftime('%d')} {month_ro}"  # Pre-format date
+        
+        data = {
+            "id": appoint.id,  # Store ID for sorting
+            "date": formatted_date,
+            "hour": appoint.hour.strftime("%H:%M"),
+            "created_at": appoint.created_at.strftime("%d-%m-%Y %H:%M"),
+            "datetime_obj": datetime.combine(date_obj, appoint.hour),  # Pre-compute datetime for sorting
+            "not_cancelled": appoint.not_cancelled
+        }
+
         if appoint.not_cancelled:
-            appointments[index] = {
-                "date": appoint.date.strftime("%d %B"),
-                "hour": appoint.hour.strftime("%H:%M"),
-                "created_at": appoint.created_at.strftime("%d-%m-%Y %H:%M"),
-                "not_cancelled": appoint.not_cancelled
-            }
+            appointments.append(data)
         else:
-            cancelled[index] = {
-                "date": appoint.date.strftime("%d %B"),
-                "hour": appoint.hour.strftime("%H:%M"),
-                "created_at": appoint.created_at.strftime("%d-%m-%Y %H:%M"),
-                "not_cancelled": appoint.not_cancelled,
+            data.update({
                 "cancelled_at": appoint.cancelled_at.strftime("%d-%m-%Y %H:%M"),
                 "cancelled_by": appoint.cancelled_by
-            }
+            })
+            cancelled.append(data)
 
-    # Convert dictionary to list of values and sort
-    sorted_appointments = dict(
-        sorted(
-            appointments.items(),
-            key=lambda x: (
-                datetime.strptime(x[1]["date"], "%d %B"),
-                datetime.strptime(x[1]["hour"], "%H:%M")
-            ),
-            reverse=True
-        )
-    )
+    # Sort lists in place
+    appointments.sort(key=lambda x: x["datetime_obj"], reverse=False)
+    cancelled.sort(key=lambda x: x["datetime_obj"], reverse=True)
 
-    sorted_cancelled = dict(
-        sorted(
-            cancelled.items(),
-            key=lambda x: (
-                datetime.strptime(x[1]["date"], "%d %B"),
-                datetime.strptime(x[1]["hour"], "%H:%M")
-            ),
-            reverse=True
-        )
-    )
+    # Convert lists back to dictionaries (if needed)
+    sorted_appointments = {item["id"]: item for item in appointments}
+    sorted_cancelled = {item["id"]: item for item in cancelled}
+
     return sorted_appointments, sorted_cancelled
 
 
