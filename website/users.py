@@ -48,25 +48,38 @@ def getMailInfo(name, deleted = False):
 @login_required
 def change():
     if request.method == 'POST':
-        name = request.get_json().get('name')
-        phone = request.get_json().get('phone')
+        data = request.get_json()
+
+        # Correct way to access dictionary keys
+        name = data.get("name")
+        phone = data.get("phone")
 
         user = User.query.filter_by(id=current_user.id).first()
         if user:
-            user.name = name
-            user.phone = phone
-            try:
-                db.session.commit()
+            updated = False  # Track if changes were made
 
-                sbj, msg = getMailInfo(name)
+            if name and name != user.name:
+                user.name = name
+                updated = True
+            if phone and phone != user.phone:
+                user.phone = phone
+                updated = True
 
-                sendConfirmMail(user.email, sbj, msg)
+            if updated:  # Commit only if changes were made
+                try:
+                    db.session.commit()
 
-                return jsonify({'success': True}), 200
-            except Exception as e:
-                return jsonify({'error': e}), 400
+                    sbj, msg = getMailInfo(user.name)
+                    sendConfirmMail(user.email, sbj, msg)
+
+                    return jsonify({'success': True}), 200
+                except Exception as e:
+                    db.session.rollback()  # Rollback in case of error
+                    return jsonify({'error': str(e)}), 500
+            else:
+                return jsonify({'success': False, 'message': 'No changes made'}), 400
         else:
-            return jsonify({'success': False}), 400
+            return jsonify({'error': 'User not found'}), 404
     return render_template('change_details.html', user=current_user)
 
 
