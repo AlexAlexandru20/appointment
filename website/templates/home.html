@@ -84,7 +84,8 @@ block body %}
             button.innerText = hour;
             button.onclick = () => selectedHour(button);
             button.dataset.hour = hour;
-            button.dataset.date = date;
+            button.dataset.date = selectedDate;
+            button.dataset.formatedDate = date;
 
             if (booked) {
               button.disabled = true;
@@ -173,7 +174,7 @@ block body %}
     appointmentDetails.innerHTML = "";
 
     let selectedDate = document.createElement("p");
-    selectedDate.innerText = `Data: ${button.dataset.date} Ora: ${button.dataset.hour}`;
+    selectedDate.innerText = `Data: ${button.dataset.formatedDate} Ora: ${button.dataset.hour}`;
 
     let nameInput = document.createElement("input");
     nameInput.type = "text";
