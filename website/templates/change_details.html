@@ -25,38 +25,77 @@
     <script>
         $(document).ready(() => {
 
-            $("#modifyForm").on('click', (event) => {
+            $("#modifyForm").on("click", (event) => {
                 event.preventDefault();
-
-                const new_name = $("#name").val() ? $("#name").val() : "{{user.name}}";
-                const new_phone = $("#phone").val() ? $("#phone").val() : "{{user.phone}}";
-
-                $.ajax({
-                    url: `{{url_for('users.change')}}`,
-                    type: "POST",
-                    data: JSON.stringify({
-                        name: new_name,
-                        phone: new_phone
-                    }),
-                    contentType: "application/json",
-                    success: (response) => {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: "success",
-                                title: "Datele au fost modificate cu succes!",
-                                showConfirmButton: false,
-                                timer: 3000,
-                                timerProgressBar: true
-                            }).then(() => {
-                                window.location.reload();
+            
+                const nameVal = $("#name").val().trim();
+                const phoneVal = $("#phone").val().trim();
+                const originalName = "{{user.name}}".trim();
+                const originalPhone = "{{user.phone}}".trim();
+            
+                if (nameVal !== originalName || phoneVal !== originalPhone) {
+                    let changes = [];
+                    let ajaxData = {};
+            
+                    if (nameVal !== originalName) {
+                        changes.push(`Nume: ${nameVal}`);
+                        ajaxData.name = nameVal;
+                    }
+                    if (phoneVal !== originalPhone) {
+                        changes.push(`Telefon: ${phoneVal}`);
+                        ajaxData.phone = phoneVal;
+                    }
+            
+                    Swal.fire({
+                        icon: "info",
+                        title: "Urmează să faci următoarele modificări:",
+                        html: changes.join("<br>"), // Use HTML for better formatting
+                        showConfirmButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: "Salvează",
+                        cancelButtonText: "Anulează",
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: `{{url_for('users.change')}}`,
+                                type: "POST",
+                                data: JSON.stringify(ajaxData), // No need for `ajaxData: ajaxData`
+                                contentType: "application/json",
+                                success: (response) => {
+                                    if (response.success) {
+                                        Swal.fire({
+                                            icon: "success",
+                                            title: "Datele au fost modificate cu succes!",
+                                            showConfirmButton: false,
+                                            timer: 3000,
+                                            timerProgressBar: true
+                                        }).then(() => {
+                                            window.location.reload();
+                                        });
+                                    }
+                                },
+                                error: (xhr, status, error) => {
+                                    console.error("Eroare AJAX:", status, error);
+                                    Swal.fire({
+                                        icon: "error",
+                                        title: "A apărut o eroare!",
+                                        text: "Te rugăm să încerci din nou.",
+                                    });
+                                },
                             });
                         }
-                    },
-                    error: (error) => {
-                        console.error(error);
-                    },
-                })
-            })
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "info",
+                        title: "Nu ai făcut nicio modificare!",
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                }
+            });
+            
 
             document.getElementById("modifyEmailBtn").addEventListener("click", async () => {
                 const { value: email } = await Swal.fire({
