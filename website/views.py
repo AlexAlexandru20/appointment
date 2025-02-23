@@ -6,31 +6,20 @@ from .utils import sendConfirmMail
 
 views = Blueprint("views", __name__)
 
-MONTHS_RO = {
-    "January": "Ianuarie",
-    "February": "Februarie",
-    "March": "Martie",
-    "April": "Aprilie",
-    "May": "Mai",
-    "June": "Iunie",
-    "July": "Iulie",
-    "August": "August",
-    "September": "Septembrie",
-    "October": "Octombrie",
-    "November": "Noiembrie",
-    "December": "Decembrie",
-}
-
-
 def getAvailableHours(selected_date):
     from .models import Appointments
 
     now = datetime.now()
     all_slots = [f"{hour}:00" for hour in range(9, 18)]
+    if selected_date.weekday() == 5:
+        all_slots = [f"{hour}:00" for hour in range(10, 14)]
 
     # If the selected date is today, filter out past hours
     if selected_date == now.date():
         all_slots = [hour for hour in all_slots if int(hour.split(":")[0]) > now.hour]
+    
+    if selected_date.weekday() == 6:
+        return {}
 
     appoints = Appointments.query.filter_by(date=selected_date).all()
     booked_slots = [
